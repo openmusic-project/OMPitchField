@@ -1,0 +1,63 @@
+;;;;============================================================================
+;;;; OMTP_2.5.lib
+;;;;
+;;;; OMTimePack library version 2.5
+;;;; author: Paul Nauert
+;;;;
+;;;; VERSION 1, 14 October 2001
+;;;; with the assistance of C. Agon, G. Assayag, K. Haddad
+;;;; and the support of the University of California, Santa Cruz Faculty Senate
+;;;; and the support of IRCAM, Scientific Division
+;;;;
+;;;; VERSION 2, 15 April 2004
+;;;; with the support of the University of California, Santa Cruz Faculty Senate
+;;;; and the Columbia University Department of Music
+;;;;
+;;;; VERSION 2.5, 25 August 2005
+;;;;
+;;;;============================================================================ 
+
+
+(:om-lib
+ 
+ (:version 2.6)
+
+ (:doc "OMTimePack library")
+
+ (:author "Paul Nauert, 2001-2005")
+
+ (:source-files 
+  "sources/database" 
+  "sources/pcset"
+  "sources/pfield"
+  "sources/filter"
+  "sources/vector&sort"
+  "sources/utility")
+
+ (:symbols
+  (:packages
+   (:package 
+    (:name "PCSet") 
+    (:functions list-t-primeforms list-ti-primeforms t-primeform ti-primeform
+     expand-t-setclass expand-ti-setclass xpose nvert set-complement))
+   (:package 
+    (:name"PField") 
+    (:functions make-cyc-pfield merge-pfields find-pc-in-field
+     find-pcset-in-field find-bounded-chords-in-field))   
+   (:package 
+    (:name"Filter")
+    (:functions filter-chordlist make-bounds-test make-width-test make-cardinality-test
+     make-spacing-test make-register-test make-voicing-test and-tests or-tests))
+   (:package 
+    (:name"Vector & Sort")
+    (:functions vector-dotprod vector-angle incl-vec incl-vec-angle prog-vec
+     prog-vec-angle sort+ sort+select sort-key_incl-vec-sum sort-key_incl-vec-angle
+     sort-key_prog-vec-sum sort-key_prog-vec-angle sort-key_width mult-keys))
+   (:package 
+    (:name"Utility")
+    (:functions mc->p p->mc p->pc parse-incl-classreps parse-prog-classreps
+     flatten2chordlist))
+   ))
+ )
+
+
