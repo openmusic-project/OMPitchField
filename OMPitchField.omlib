@@ -1,28 +1,25 @@
 ;;;;============================================================================
-;;;; OMTP_2.5.lib
+;;;; OMPF.lib
 ;;;;
-;;;; OMTimePack library version 2.5
+;;;; OMPitchField library version 2.0
 ;;;; author: Paul Nauert
 ;;;;
-;;;; VERSION 1, 14 October 2001
+;;;; VERSION 0.5, 8 November 2001
 ;;;; with the assistance of C. Agon, G. Assayag, K. Haddad
 ;;;; and the support of the University of California, Santa Cruz Faculty Senate
-;;;; and the support of IRCAM, Scientific Division
 ;;;;
-;;;; VERSION 2, 15 April 2004
+;;;; VERSION 2.0, 1 June 2004 and subsequent refinements through summer 2006
 ;;;; with the support of the University of California, Santa Cruz Faculty Senate
 ;;;; and the Columbia University Department of Music
-;;;;
-;;;; VERSION 2.5, 25 August 2005
-;;;;
 ;;;;============================================================================ 
+;;;: (this file created in 2019 for OM7)
 
 
 (:om-lib
  
- (:version 2.6)
+ (:version 2.0)
 
- (:doc "OMTimePack library")
+ (:doc "OMPitchField library")
 
  (:author "Paul Nauert, 2001-2005")
 
