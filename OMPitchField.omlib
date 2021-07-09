@@ -12,12 +12,12 @@
 ;;;; with the support of the University of California, Santa Cruz Faculty Senate
 ;;;; and the Columbia University Department of Music
 ;;;;============================================================================ 
-;;;: (this file created in 2019 for OM#)
+;;;: (this file created in 2021 for OM#)
 
 
 (:om-lib
  
- (:version 2.0)
+ (:version 3.0)
 
  (:doc "OMPitchField library")
 
@@ -35,7 +35,7 @@
   (:packages
    (:package 
     (:name "PCSet") 
-    (:functions list-t-primeforms list-ti-primeforms t-primeform ti-primeform
+    (:functions list-t-primeforms list-ti-primeforms t-primeform ti-primeform make-ti-setclass
      expand-t-setclass expand-ti-setclass xpose nvert set-complement))
    (:package 
     (:name"PField") 
@@ -52,7 +52,7 @@
      sort-key_prog-vec-sum sort-key_prog-vec-angle sort-key_width mult-keys))
    (:package 
     (:name"Utility")
-    (:functions mc->p p->mc p->pc parse-incl-classreps parse-prog-classreps
+    (:functions mc->p p->mc p->pc nesting->timing parse-incl-classreps parse-prog-classreps
      flatten2chordlist))
    ))
  )

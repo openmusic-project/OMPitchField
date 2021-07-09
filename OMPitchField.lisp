@@ -54,7 +54,7 @@
           expand-t-setclass expand-ti-setclass xpose nvert set-complement
           ) nil)
         ("pfield" nil nil
-         (;make-pfield
+         (
           make-cyc-pfield merge-pfields find-pc-in-field
           find-pcset-in-field find-bounded-chords-in-field
           ) nil)
