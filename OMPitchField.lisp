@@ -88,7 +88,7 @@
 (print
  (format nil "
 ;; ============================================
-;;  OMPitchField - PC set and Pitch library for OM
+;;  OMPitchField - Pitch Field and Pitch Set library for OM
 ;;  Version:	~A
 ;;  Date:	~A
 ;;  Author:	Paul Nauert
