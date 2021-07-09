@@ -1,3 +1,5 @@
+(in-package :om)
+
 ;;;;; ======================================================================
 ;;;;; OMTP 2.0
 ;;;;;
@@ -88,15 +90,15 @@ and <key>."
 
 (defun choose-n-randomly (lst n)
   (loop repeat n
-        for l = lst then (remove-nth rand-num l)
+        for l = lst then (remove-nth-elt rand-num l)
         for rand-num = (om-random 0 (1- (length l)))
         collect (nth rand-num l)))
 
 
-(defun remove-nth (n lst)
+(defun remove-nth-elt (n lst)
   (when lst
     (if (zerop n) (rest lst)
-        (cons (first lst) (remove-nth (1- n) (rest lst))))))
+        (cons (first lst) (remove-nth-elt (1- n) (rest lst))))))
 
 
 ; ===================================================================

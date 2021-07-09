@@ -32,6 +32,8 @@
         "utility"
         ))
 
+(defparameter *ompitchfield-version* '2.5)
+(defparameter *ompitchfield-date* '2021-07-09)
 
 ;--------------------------------------------------
 ;Loading & compiling files 
@@ -48,11 +50,11 @@
 (setf *subpackages-list1*
       '(("pcset" nil nil
          (
-          list-t-primeforms list-ti-primeforms t-primeform ti-primeform
+          list-t-primeforms list-ti-primeforms t-primeform ti-primeform make-ti-setclass
           expand-t-setclass expand-ti-setclass xpose nvert set-complement
           ) nil)
         ("pfield" nil nil
-         (
+         (;make-pfield
           make-cyc-pfield merge-pfields find-pc-in-field
           find-pcset-in-field find-bounded-chords-in-field
           ) nil)
@@ -69,7 +71,7 @@
           ) nil)
         ("utility" nil nil
          (
-          mc->p p->mc p->pc parse-incl-classreps parse-prog-classreps
+          mc->p p->mc p->pc nesting->timing parse-incl-classreps parse-prog-classreps
           flatten2chordlist
           ) nil)
         ))
@@ -79,3 +81,23 @@
 ;--------------------------------------------------
 
 (om::fill-library *subpackages-list1*)
+
+
+(set-lib-release *ompitchfield-version* (find-library "OMPitchField"))
+
+(print
+ (format nil "
+;; ============================================
+;;  OMPitchField - PC set and Pitch library for OM
+;;  Version:	~A
+;;  Date:	~A
+;;  Author:	Paul Nauert
+;;;; with the assistance of C. Agon, G. Assayag, K. Haddad
+;;;; and the support of the University of California, Santa Cruz Faculty Senate
+;; ============================================
+"
+	 *ompitchfield-version*
+	 *ompitchfield-date*))
+
+
+;;; (gen-lib-reference (find-library "OMPitchField"))

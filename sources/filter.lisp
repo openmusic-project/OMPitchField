@@ -1,3 +1,5 @@
+(in-package :om)
+
 ;;;;; ======================================================================
 ;;;;; OMTP 2.0
 ;;;;;
@@ -15,12 +17,15 @@
 ; or-tests
 ; ===================================================================
 ; ===================================================================
+
+
+
 ; FILTERING CHORD LISTS
 
-(defmethod! filter-chordlist (test chordlist &optional (mode 'PASS))
+(defmethod! filter-chordlist ((test t) (chordlist list) &optional (mode 'pass))
   :icon *FILT_ICON*
   :indoc '("test" "list of chords" "pass or reject")
-  :menu-ins '((2 (("PASS" 'PASS) ("REJECT" 'REJECT))))
+  :menu-ins '((2 (("PASS" 'pass) ("REJECT" 'reject))))
   :doc "
 TEST should be a predicate function returning T or NIL when applied to
 the (nested) list CHORDLIST. The return value is a list like CHORDLIST
@@ -47,9 +52,9 @@ EXAMPLES (each item chord-K is a nonempty list of integers)
   BAD: ((chord-1 (chord-2 chord-3)) (chord-4 chord-5))
   first sublist contains a mix of chords and S-structures"
   (if (listp (caar chordlist))
-    (mapcar (lambda (item) (filter-chord-list test item mode))
+    (mapcar (lambda (item) (filter-chordlist test item mode))
             chordlist)
-    (if (eq mode 'REJECT)
+    (if (equal mode 'reject)
       (remove-if test chordlist)
       (remove-if-not test chordlist))))
 
@@ -93,6 +98,7 @@ the number of notes in a pcset or pitch set is at least LO and at most HI."
 
 ; ===================================================================
 
+#|
 (defmethod! make-spacing-test (spacing-lists)
   :icon *TEST_ICON*
   :indoc '("each sublist of SPACING-LISTS contains integer pairs (LO HI)")
@@ -127,15 +133,54 @@ For a given chord C, testing proceeds as follows:
                            spacing-lists)
           for sp-list in right-length-lists
           when (ints-in-ranges? chord-ints sp-list)
-          return T))
+          return t))
   )
 
 
 (defun ints-in-ranges? (ints ranges)
   (loop for i in ints and r in ranges
-        unless (<= (first r) i (second r)) return NIL
-        finally return T))
+        unless (<= (first r) i (second r)) return nil
+        finally return t))
+|#
 
+;Returning to 1.0 old version. the new one has a problem in ints-in-ranges?
+;using return macro in a loop which is already defined in commonlisp  
+
+(defmethod! make-spacing-test (spacing-pairs)
+  :icon *TEST_ICON*
+  :doc
+"returns a test to see if the distances between consecutive notes of a chord,
+traversed from bottom to top, are in the intervals specified by corresponding
+elements of <spacing-pairs>; each element of this list is a pair (lo hi)
+specifying the bounds of a closed interval. If there is a surplus of <spacing-
+pairs>, ignores the extras; if there is a shortage, re-uses the last.
+
+Example: with <spacing-pairs> = ((1 3) (6 8)), returns a test to see if a
+three-note chord (lo med hi) meets the following requirements:
+
+-- distance from lo to med at least 1, at most 3
+
+-- distance from med to hi at least 6, at most 8
+"
+  
+  :initvals '(((5 10) (1 5)))
+  :indoc '("list of pairs of integers, SECOND of each pair no smaller than FIRST")
+  :numouts 1
+  
+  (lambda (chord)
+    (do ((work-chord (sort chord #'<)
+                     (cdr work-chord))
+         (work-bounds spacing-pairs
+                      (or (cdr work-bounds)
+                          work-bounds))
+         (result t))
+        ((or (null (cdr work-chord))
+             (not result))
+         result)
+      (unless (<= (first (first work-bounds))
+                  (- (second work-chord) (first work-chord))
+                  (second (first work-bounds)))
+        (setf result nil)))))
 
 ; ===================================================================
 
@@ -309,6 +354,231 @@ in a chord are voiced as pitch interval 1."
                  count (= i (the fixnum (abs (- note first-note))))))
          (the fixnum
            (i-multiplicity i (rest chord))))))
+
+;;;;; counting intervals from one chord to another
+
+(defun ic-multiplicity2 (ic from-chord to-chord)
+  (if (null from-chord)
+    0
+    (+ (let ((first-note (first from-chord))
+             (accum 0))
+         (dolist (note to-chord accum)
+           (when (= ic (i->ic (- note first-note)))
+             (setf accum (1+ accum)))))
+       (ic-multiplicity2 ic (rest from-chord) to-chord))))
+
+(defun i-multiplicity2 (i from-chord to-chord)
+  (if (null from-chord)
+    0
+    (+ (let ((first-note (first from-chord))
+             (accum 0))
+         (dolist (note to-chord accum)
+           (when (= i (- note first-note))
+             (setf accum (1+ accum)))))
+       (i-multiplicity2 i (rest from-chord) to-chord))))
+
+
+(defun dir-pci-multiplicity2 (pci from-chord to-chord)
+  (if (null from-chord)
+    0
+    (+ (let ((first-note (first from-chord))
+             (accum 0))
+         (dolist (note to-chord accum)
+           (when (= pci (12- note first-note))
+             (setf accum (1+ accum)))))
+       (dir-pci-multiplicity2 pci (rest from-chord) to-chord))))
+
+; ===================================================================
+; vldg filtering
+
+(defmethod! make-p-vldg-test ((from-chord list) (vlspec-triples list))
+  :icon 130
+  :doc
+"returns a test to see if the voiceleading V from <from-chord> to a chord satisfies 
+the criteria specified in <vlspec-triples>, which is a list of triples (ints lo hi).
+Each 'ints' is a list containing one or more directed pitch intervals, and the 
+corresponding 'lo' and 'hi' specify lower and upper limits on the combined
+multiplicity of occurrence in V of the intervals from 'ints'."
+  
+  :initvals '((0 7 14)
+              (((-3 -2 -1 1 2 3) 2 3)))
+  :indoc '("list of integers"
+           "list of triples, each structured: list of integers, integer, integer")
+  :numouts 1
+  
+  (lambda (chord)
+    (recursive-p-vldg-test from-chord chord vlspec-triples)))
+
+
+(defun recursive-p-vldg-test (from-chord chord vlspec-triples)
+  (if (null vlspec-triples)
+    t
+    (let* ((spec (first vlspec-triples))
+           (i-count (let ((accum 0))
+                      (dolist (i (first spec) accum)
+                        (setf accum (+ accum (i-multiplicity2 i from-chord chord)))))))
+      (and (<= (second spec) i-count (third spec))
+           (recursive-p-vldg-test from-chord chord (rest vlspec-triples))))))
+
+
+(defmethod! make-pc-vldg-test ((from-chord list) (vlspec-triples list))
+; this one makes sense for filtering list of either pcsets or pitch sets
+  :icon *TEST_ICON*
+  :doc
+"returns a test to see if the voiceleading V from <from-chord> to a chord satisfies 
+the criteria specified in <vlspec-triples>, which is a list of triples (pci lo hi).
+Each 'pci' is a directed or undirected pitch class interval; specifically, if 'pci'
+is nonpositive, then its absolute value is understood to be an undirected pitch
+class interval (interval class 0 to 6), and if 'pci' is nonnegative, then it is
+understood to be a directed pitch class interval (0 to 11). In either case, the
+corresponding 'lo' and 'hi' specify lower and upper limits on the multiplicity of
+occurrence in V of 'pci'."
+
+  :initvals '((0 2 7)
+              ((3 0 0)))
+  :indoc '("list of mod-12 integers"
+           "list of triples: FIRST integer in [-6 , 11]; SECOND and THIRD integers")
+  :numouts 1
+
+  (lambda (chord)
+    (recursive-pc-vldg-test from-chord chord vlspec-triples)))
+
+
+(defun recursive-pc-vldg-test (from-chord chord vlspec-triples)
+  (if (null vlspec-triples)
+    t
+    (let* ((spec (first vlspec-triples))
+           (count (if (minusp (first spec))
+                    (ic-multiplicity2 (- (first spec)) from-chord chord)
+                    (dir-pci-multiplicity2 (first spec) from-chord chord))))
+      (and (<= (second spec) count (third spec))
+           (recursive-pc-vldg-test from-chord chord (rest vlspec-triples))))))
+
+
+
+; ===================================================================
+;------------------------
+; abstract set class inclusion filtering
+
+(defmethod! make-inclusion-test (incspec-triples &optional (mod 12))
+; this one makes sense for filtering list of either pcsets or pitch sets
+  :icon *TEST_ICON*
+  :doc
+"returns a test to see if a chord satisfies the criteria specified in
+<incspec-triples>, which is a list of triples (classrep lo hi). Each
+classrep is one of the following:
+
+-- an integer in [1 , 6] representing an interval class
+
+-- a list whose head is :t or :ti and whose tail is a list of mod12
+integers representing a t- or ti-setclass
+
+-- a list whose head is :tp or :tip and whose tail is a list of
+integers representing a class of pitch sets related by pitch
+transposition alone, or by pitch transposition and/or inversion
+
+The values 'lo' and 'hi' determine lower and upper limits on the
+multiplicity of occurrence of members of the corresponding class in
+the chord to which this test is applied. Or if the 'classrep' is
+LARGER than the chord, these limits apply to the multiplicity of
+occurrence of t- or ti-transforms of the chord in the classrep."
+
+  :initvals '((((:t 0 1 2) 0 1)) 12)       ; tests if chord contains 0 or 1 chromatic trichord(s)
+  :indoc
+  '("list of triples: FIRST integer in [1 , 6] or integer list beginning :t, :ti, :tp, or :tip; SECOND & THIRD integers")
+  :numouts 1
+
+  (lambda (chord)
+    (recursive-inclusion-test (remove-duplicates chord) incspec-triples mod)))
+
+
+(defun recursive-inclusion-test (chord incspec-triples n)
+  (if (null incspec-triples)
+    t
+    (let* ((spec (first incspec-triples))
+           (classcount (if (integerp (first spec))      ; interval class
+                         (ic-multiplicity (i->ic (first spec) n) chord n);12 for the time being
+                         (case (first (first spec))
+                           (:t (if (> (length (rest (first spec)))      ; pc transposition
+                                      (length chord))
+                                 (t-class-multiplicity chord (rest (first spec)) n)
+                                 (t-class-multiplicity (rest (first spec)) chord n )))
+                           (:ti (if (> (length (rest (first spec)))     ; pc transposition/inversion
+                                       (length chord))
+                                  (ti-class-multiplicity chord (rest (first spec)) n)
+                                  (ti-class-multiplicity (rest (first spec)) chord n)))
+                           (:tp (if (> (length (rest (first spec)))     ; pitch transposition
+                                       (length chord))
+                                  (tp-class-multiplicity chord (rest (first spec)) n)
+                                  (tp-class-multiplicity (rest (first spec)) chord n)))
+                           (:tip (if (> (length (rest (first spec)))    ; pitch transposition/inversion
+                                        (length chord))
+                                   (tip-class-multiplicity chord (rest (first spec)) n)
+                                   (tip-class-multiplicity (rest (first spec)) chord n)))
+                           (otherwise
+                            (format t "INCLUSION-TEST: ignoring ill-formed 'classrep' ~A~%" (first spec))
+                            ;(ed-beep) ??
+                            (om-beep)
+                            (second spec))))))
+      (and (<= (second spec) classcount (third spec))
+           (recursive-inclusion-test chord (rest incspec-triples) n)))))
+
+
+#|
+(defun subsets (set n)
+  "lists all the size-<n> subsets of <set>"
+  (let ((len (length set)))
+    (cond ((< len n) nil)
+          ((= len n) (list set))
+          ((zerop n) (list nil))
+          (t
+           (append (mapcar (lambda (s)
+                             (cons (car set) s))
+                           (subsets (cdr set) (1- n)))
+                   (subsets (cdr set) n))))))
+
+
+(defun t-class-multiplicity (classrep chord)
+  "how many instances does <chord> contain of the t-setclass to which <classrep> belongs?"
+  (let* ((classprime (t-primeform classrep))
+         (subchords (subsets chord (length classprime)))
+         (accum 0))
+    (dolist (s subchords accum)
+      (when (equal (t-primeform s) classprime)
+        (setf accum (1+ accum))))))
+
+(defun ti-class-multiplicity (classrep chord)
+  "how many instances does <chord> contain of the ti-setclass to which <classrep> belongs?"
+  (let ((classprime (t-primeform classrep))
+        (classinv (t-primeform (mapcar #'12- classrep))))
+    (+ (t-class-multiplicity classprime chord)
+       (if (equal classprime classinv)
+         0
+         (t-class-multiplicity classinv chord)))))
+
+
+
+(defun tp-class-multiplicity (classrep chord)
+  "how many instances does <chord> contain of pitch transpositions of the pitch set <classrep>?"
+  (let* ((classprime (tp-primeform classrep))
+         (subchords (subsets chord (length classprime)))
+         (accum 0))
+    (dolist (s subchords accum)
+      (when (equal (tp-primeform s) classprime)
+        (setf accum (1+ accum))))))
+
+(defun tip-class-multiplicity (classrep chord)
+  "how many instances does <chord> contain of pitch transpositions of the pitch set <classrep> and its inversion?"
+  (let* ((classprime (tp-primeform classrep))
+         (classinv (tp-primeform (mapcar (lambda (x) (- x)) classrep))))
+    (+ (tp-class-multiplicity classprime chord)
+       (if (equal classprime classinv)
+         0
+         (tp-class-multiplicity classinv chord)))))
+
+
+|#
+
 
 ; ===================================================================
 ; COMBINING TESTS

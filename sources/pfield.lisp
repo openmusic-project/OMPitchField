@@ -1,3 +1,5 @@
+(in-package :om)
+
 ;;;;; ======================================================================
 ;;;;; OMTP 2.0
 ;;;;;
@@ -9,6 +11,7 @@
 ; find-pc-in-field
 ; find-pcset-in-field
 ; find-bounded-chords-in-field [new, summer 2006]
+
 
 ; ===================================================================
 ; PFIELD CONSTRUCTION

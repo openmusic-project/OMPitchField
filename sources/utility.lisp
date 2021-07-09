@@ -1,3 +1,6 @@
+(in-package :om)
+
+
 ;;;;; ======================================================================
 ;;;;; OMTP 2.0
 ;;;;;
@@ -10,6 +13,16 @@
 ; parse-incl-classreps
 ; parse-prog-classreps
 ; flatten2chordlist
+
+;============================================================================
+; mod12 arithmetic
+
+(defun 12+ (num &rest more-nums)
+  (mod (apply #'+ num more-nums) 12))
+
+(defun 12- (num &rest more-nums)
+  (mod (apply #'- num more-nums) 12))
+
 
 ; ===================================================================
 ; BETWEEN MIDICENTS (fixed @ 100/semitone) AND PITCH INTEGERS (variable)
@@ -62,6 +75,91 @@ The modulus N defaults to 12 but is an optional parameter
 that can be set to other values."
   :indoc '("number or list" "modulus of the pc space")
   (do-modular-reduction pitch n))
+
+; ===================================================================
+; NESTING->TIMING
+
+
+(defun flatten (lst times)
+  (let* ((m (max-depth lst))
+         (times1 (* (signum times)
+                    (min m (abs times))))
+         (times2 (if (plusp times1)
+                   times1
+                   (+ m times1))))
+    (if (null lst)
+      (values nil nil)
+      (rec-flatten lst times2 (make-list (length lst) :initial-element 1)))))
+
+
+(defun rec-flatten (lst times nest-code)
+  (if (zerop times)
+    (values lst nest-code)
+    (multiple-value-bind (new-lst new-nest-code)
+                         (flatten-once lst nest-code)
+      (rec-flatten new-lst (1- times) new-nest-code))))
+
+
+(defun flatten-once (lst nest-code)
+    (do ((lst-result nil)
+         (nest-code-result nil)
+         (lst-work lst
+                   (cdr lst-work))
+         (nest-code-work nest-code
+                         (cdr nest-code-work)))
+        ((null lst-work) (values lst-result nest-code-result))
+      (let ((l (car lst-work)))
+        (if (listp l)
+          (setf lst-result (append lst-result l)
+                nest-code-result (append nest-code-result
+                                         (when l
+                                           (append (make-list (1- (length l))
+                                                              :initial-element 1)
+                                                   (list (1+ (car nest-code-work)))))))
+          (setf lst-result (append lst-result (list l))
+                nest-code-result (append nest-code-result
+                                         (list (1+ (car nest-code-work)))))))))
+
+
+(defun max-depth (lst)
+  (if (null lst)
+    0
+    (if (atom (car lst))
+      (max-depth (cdr lst))
+      (max (1+ (max-depth (car lst)))
+           (max-depth (cdr lst))))))
+
+(defmethod! nesting->timing ((lst list) (levels number) (time-unit number))
+  :icon '(141)
+  :doc
+"output1 is <lst> flattened by a specified number of <levels>.
+Or if <levels> is nonpositive, its absolute value determines the
+number of nested levels to remain after flattening.
+
+output2 is list with same length as output1, containing onset
+times separated by <time-unit>, or by a multiple of this amount
+when the separation corresponds to a boundary between sublists
+of <lst> that have been joined by flattening.
+
+The intended use is to flatten hierarchic pitch data into a form
+acceptable to a chord-seq factory, and to recover the hierarchy
+lost to flattening in the form of timing data acceptable to the
+factory. Usual wiring: nesting->timing OUT-1 to chord-seq IN-2
+and nesting->timing OUT-2 to chord-seq IN-3"
+
+  :initvals '(nil -1 500)
+  :indoc '("nested list of numbers"
+           "number of nested levels to flatten [or if negative, abs val is number of nested levels to remain after flattening]"
+           "time unit separating members of same sublist (multiplied at sublist boundaries)")
+  :numouts 2
+
+  (multiple-value-bind (l n)
+      (flatten lst levels)
+    (values l
+            (dx->x 0
+                   (mapcar (lambda (j) (* j time-unit))
+                           n)))))
+
 
 ; ===================================================================
 ; HELP WITH -CLASSREP EXPRESSIONS

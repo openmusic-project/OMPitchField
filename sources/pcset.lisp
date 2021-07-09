@@ -1,3 +1,5 @@
+(in-package :om)
+
 ;;;;; ======================================================================
 ;;;;; OMTP 2.0
 ;;;;;
@@ -17,7 +19,7 @@
 ; ===================================================================
 ; PRIMEFORMS AND SET CLASSES
 
-(defmethod! list-ti-primeforms ((card number) &optional (n 12) tag)
+(defmethod! list-ti-primeforms ((card number) &optional (n 12) (tag nil))
   :icon *PC_ICON*
   :doc "
 Lists the primeform of each ti-setclass of cardinality CARD. This parameter,
@@ -46,12 +48,12 @@ or inversion."
       primeforms)))
 
 
-(defmethod! list-ti-primeforms ((card list) &optional (n 12) tag)
+(defmethod! list-ti-primeforms ((card list) &optional (n 12) (tag nil))
   (loop for item in card collect (list-ti-primeforms item n tag)))
 
 ;-----
 
-(defmethod! list-t-primeforms ((card number) &optional (n 12) tag)
+(defmethod! list-t-primeforms ((card number) &optional (n 12) (tag nil))
   :icon *PC_ICON*
   :doc "
 Lists the primeform of each t-setclass of cardinality CARD. This parameter,
@@ -102,7 +104,7 @@ Will tolerate integers out of the mod-N range in PCSET."
     (t-primeforms pcset n)
     ;else
     (let* ((pcs (do-modular-reduction pcset n))
-           (adj (adj-ints pcs n))
+           (adj (adj-intvls pcs n))
            (best-ints (butlast (most-left-packed-rotation adj))))
       (ints->pcs best-ints 0 n))))
 
@@ -129,7 +131,7 @@ Will tolerate integers out of the mod-N range in PCSET."
     (ti-primeforms pcset n)
     ;else
     (let* ((pcs (do-modular-reduction pcset n))
-           (adj (adj-ints pcs n))
+           (adj (adj-intvls pcs n))
            (best-ints (butlast (most-left-packed-order adj))))
       (ints->pcs best-ints 0 n))))
 
@@ -139,6 +141,58 @@ Will tolerate integers out of the mod-N range in PCSET."
 
 ; ===================================================================
 
+(defmethod! make-t-setclass ((pcset list))
+  :icon 131
+  :doc
+"lists all pcsets equivalent to <pcset> under transposition;
+will also accept a list of pcsets as input"
+  :initvals '((0 1 2))
+  :indoc '("any member of the desired t-setclass (or list containing one member of each desired t-setclass)")
+  :numouts 1
+  
+  (if (consp (car pcset))
+    (make-t-setclasses pcset)
+    (let ((t-prime (t-primeform pcset))
+          (result nil))
+      (dotimes (n 12 (reverse result))
+        (let ((tn (mapcar (lambda (x) (12+ x n))
+                          t-prime)))
+          (unless (member tn result
+                          :test (lambda (x y) (not (set-difference x y))))
+            (push tn result)))))))
+
+
+(defun make-t-setclasses (pcsets)
+  (loop for item in pcsets
+        collect (make-t-setclass item)))
+
+
+(defmethod! make-ti-setclass (pcset)
+  :icon *PFIELD_ICON*
+  :doc
+"lists all pcsets equivalent to <pcset> under transposition
+and inversion; will also accept a list of pcsets as input"
+  :initvals '((0 1 2))
+  :indoc '("any member of the desired ti-setclass (or list containing one member of each desired ti-setclass)")
+  :numouts 1
+  
+  (if (consp (car pcset))
+    (make-ti-setclasses pcset)
+    (let* ((ti-prime (ti-primeform pcset))
+           (t-setclass (make-t-setclass ti-prime))
+           (inv (t-primeform (mapcar #'12- ti-prime))))
+      (if (member inv t-setclass :test #'equal)
+        t-setclass
+        (append t-setclass (make-t-setclass inv))))))
+
+
+(defun make-ti-setclasses (pcsets)
+  (loop for item in pcsets
+        collect (make-ti-setclass item)))
+
+; ===================================================================
+
+#|
 (defmethod! expand-t-setclass (pcset &optional (n 12))
   :icon *PC_ICON*
   :doc "
@@ -158,6 +212,30 @@ Will tolerate integers out of the mod-N range in PCSET."
             for x-pcset = pcset then (xpose x-pcset 1 n)
             unless (member x-pcset result) collect x-pcset into result
             finally return result))))
+|#
+
+;corrected 090721 KH
+
+(defmethod! expand-t-setclass (pcset &optional (n 12))
+  :icon *PC_ICON*
+  :doc "
+Given any member of a t-setclass, lists every member of that t-setclass.
+The optional parameter N can be used to set the number of equal steps per
+octave to something other than the default of 12.
+
+Will tolerate integers out of the mod-N range in PCSET."
+  :initvals '((1 3 4) 12)
+  :indoc '("pcset or list of them"
+           "modulus of the pc space")
+  (if (listp (first pcset))
+    (expand-t-setclasses pcset)
+    (let ((t-prime (t-primeform pcset n))
+          result)
+      (loop repeat n
+            for x-pcset = pcset then (xpose x-pcset 1 n)
+            unless (member x-pcset result) 
+            collect (push x-pcset result))
+            result )))
 
 
 (defmethod! expand-t-setclasses (pcset &optional (n 12))
@@ -281,7 +359,7 @@ SPACE."
 ; ===================================================================
 ; PRIME FORM CALCULATIONS
 
-(defun adj-ints (pcset n)
+(defun adj-intvls (pcset n)
   "intervals between adjacent elements, including wrap-around interval from last to first"
   (setf pcset (sort (remove-duplicates pcset) #'<))
   (setf pcset (append pcset
@@ -290,14 +368,19 @@ SPACE."
         for r in (rest pcset)
         collect (the fixnum (- r q))))
 
-(defun rotate-left (lst)
-  "rotate one position left: (rotate-left '(0 1 2 3)) ==> (1 2 3 0)"
-  (append (rest lst) (list (first lst))))
+;Already defined in mathtools package
+
+;(defun rotate-left (lst)
+;  "rotate one position left: (rotate-left '(0 1 2 3)) ==> (1 2 3 0)"
+;  (append (rest lst) (list (first lst))))
 
 (defun rotate-right (lst)
   "rotate one position right: (rotate-right '(0 1 2 3)) ==> (3 0 1 2)"
   (append (last lst) (butlast lst)))
 
+
+;Already defined in mathtools package
+#|
 (defun most-left-packed-rotation (ints)
   (loop repeat (length (rest ints))
         with rev = (reverse ints)
@@ -318,11 +401,13 @@ SPACE."
         finally (return (reverse ints))
         ))
 
+
 (defun bigger (list1 list2)
   (when (and list1 list2)
     (or (> (the fixnum (first list1)) (the fixnum (first list2)))
         (and (= (the fixnum (first list1)) (the fixnum (first list2)))
              (bigger (rest list1) (rest list2))))))
+|#
 
 (defun ints->pcs (ints start n)
   (declare (fixnum start n))
