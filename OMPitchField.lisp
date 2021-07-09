@@ -32,7 +32,7 @@
         "utility"
         ))
 
-(defparameter *ompitchfield-version* '2.5)
+(defparameter *ompitchfield-version* '3.0)
 (defparameter *ompitchfield-date* '2021-07-09)
 
 ;--------------------------------------------------
