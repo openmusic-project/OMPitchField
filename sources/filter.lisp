@@ -280,7 +280,7 @@ EXAMPLE
                         for index upfrom 0
                         until (< el sb)
                         finally do (incf (nth index template)))
-          finally return template)))
+          finally (return template))))
 
 ; ===================================================================
 
@@ -592,7 +592,7 @@ same input, or NIL if any of the predicates return NIL."
   (lambda (chord)
     (loop for tf in testfuns
           unless (funcall tf chord) return NIL
-          finally return T)))
+          finally (return T))))
 
 ;-----
 
@@ -605,6 +605,6 @@ same input, or NIL if all the predicates return NIL."
   (lambda (chord)
     (loop for tf in testfuns
           when (funcall tf chord) return T
-          finally return NIL)))
+          finally (return NIL))))
 
 ;;;;; END

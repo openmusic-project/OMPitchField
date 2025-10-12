@@ -485,6 +485,6 @@ sorting a list of chords based on the product of all the key values."
   (lambda (chord)
     (loop for k in keys
           for val = (funcall k chord) then (* val (funcall k chord))
-          finally return val)))
+          finally (return val))))
 
 ;;;;; END
