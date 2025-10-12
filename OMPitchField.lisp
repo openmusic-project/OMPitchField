@@ -61,7 +61,8 @@
         ("filter" nil nil
          (
           filter-chordlist make-bounds-test make-width-test make-cardinality-test
-          make-spacing-test make-register-test make-voicing-test and-tests or-tests
+          make-spacing-test make-register-test make-voicing-test 
+          make-p-vldg-test make-pc-vldg-test make-inclusion-test and-tests or-tests
           ) nil)
         ("vector & sort" nil nil
          (
