@@ -356,16 +356,17 @@ in a chord are voiced as pitch interval 1."
            (i-multiplicity i (rest chord))))))
 
 ;;;;; counting intervals from one chord to another
+;updated by Teemu aka Nikoteemus
 
-(defun ic-multiplicity2 (ic from-chord to-chord)
+(defun ic-multiplicity2 (ic from-chord to-chord &optional (n 12))
   (if (null from-chord)
     0
     (+ (let ((first-note (first from-chord))
              (accum 0))
          (dolist (note to-chord accum)
-           (when (= ic (i->ic (- note first-note)))
-             (setf accum (1+ accum)))))
-       (ic-multiplicity2 ic (rest from-chord) to-chord))))
+           (when (= ic (i->ic (- note first-note) n))
+             (incf accum))))
+       (ic-multiplicity2 ic (rest from-chord) to-chord n))))
 
 (defun i-multiplicity2 (i from-chord to-chord)
   (if (null from-chord)
